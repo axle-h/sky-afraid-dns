@@ -1,11 +1,10 @@
 #!/bin/bash
 
 # Alex Haslehurst - https://github.com/axle-h
-# Client for scraping external ip address from a sky router and updating free.afraid.org dynamic dns service.
+# Client for updating free.afraid.org dynamic dns service by monitoring uPNP.
 
-router="100.0.0.1"
 ipregex="(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-token="TOP-SECRET"
+token="TOP_SECRET"
 logfile=/tmp/dns-update.log
 
 # Get last ip address logged
@@ -13,16 +12,12 @@ if [ -f $logfile ]; then
   cacheIp=$(tail -n 1 $logfile | cut -d '-' -f 2 | tr -d ' ' |  grep -Eo "$ipregex" | head -n 1)
 fi
 
-# Get external ip from sky hub
-ip=$(curl -s http://$router \
-        | grep 'var wanDslLinkConfig =' \
-        | grep -Eo "$ipregex"  \
-        | head -n 1)
-
+# Get external ip from IGD
+ip=$(upnpc -s | grep ExternalIPAddress | sed 's/[^0-9\.]//g')
 log="`date` -"
 
 if [ -z "$ip" ]; then
-  log="$log Cannot get ip from $router"
+  log="$log Cannot get ip from uPNP"
 else
   log="$log $ip -"
   if [ "$ip" = "$cacheIp" ]; then
